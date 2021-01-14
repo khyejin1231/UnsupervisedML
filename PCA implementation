@@ -1,0 +1,47 @@
+#packages
+#install.packages("dplyr")
+library("dplyr")
+#install.packages("PMA")
+library("PMA")
+#install.packages("tidyr")
+library(tidyr)
+#install.packages("DataCombine")
+library("DataCombine")
+#install.packages("sparsepca")
+library("sparsepca")
+
+
+#Read data
+summary(fifa)
+mfifa <- subset(fifa, Position != 'Gk')
+#The variables should be centered to have mean zero.
+#Furthermore, the results obtained when we perform PCA will also
+#depend on whether the variables have been individually scaled.
+mfifa$Position <- as.numeric(as.factor(mfifa$Position)) - 1
+mfifanum<- select_if(mfifa, is.numeric)
+#mfifanum <- scale(mfifanum, scale = TRUE)
+mfifanum$mid <- rep(0, nrow(mfifanum)) #mid
+mfifanum$mid[which(mfifa$Position == 1)] <- mfifanum$mid[which(mfifa$Position == 1)]+ 1
+
+mfifanum$def <- rep(0, nrow(mfifanum))
+mfifanum$def[which(mfifa$Position == 2)] <- mfifanum$def[which(mfifa$Position == 2)]+ 1
+
+mfifanum <- mfifanum[,-1]
+#Covariance matrix
+
+#PCA
+mfifanumdrop <- na.omit(mfifanum)
+mfifapca <- prcomp(mfifanumdrop)
+mfifapca
+summary(mfifapca)
+plot(mfifapca, type = 'l')
+biplot(mfifapca)
+
+#Sparse PCA
+mfifaspca <- spca(mfifanumdrop, center = FALSE, scale = FALSE)
+summary(mfifaspca)
+plot(mfifaspca, type = 'l')
+#https://online.stat.psu.edu/stat505/lesson/11/11.4
+
+
+
