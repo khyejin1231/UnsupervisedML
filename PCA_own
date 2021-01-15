@@ -1,0 +1,70 @@
+#own implementation
+
+#data preperation: please refer to pca_packages.R
+X <- as.matrix(mfifanum)
+
+#pca
+
+pca <- function(X){
+  mcovX <- cov(X, use = "pairwise.complete.obs")
+  lpca <- eigen(mcovX)
+  return(list("eigen" = lpca$values, "pc" = 
+                lpca$vectors))
+}
+
+
+
+#sparse pca
+spcar1 <- function(X, c2, imax){
+  
+  #initialization
+  X <- as.matrix(X)
+  n <- nrow(X)
+  p <- ncol(X)
+  pca <- pca(X)
+  v <- as.matrix(pca$pc[,1]) 
+  vnorm <- sum(abs(v))
+  i <- 0
+  
+  while(i < imax){
+    i <- i + 1
+    Xv <- X %*% v
+    Xv <- na.omit(Xv) #???
+    X <- na.omit(Xv) #???
+    u <- Xv / as.numeric(sqrt((t(Xv) %*% Xv))) #How to deal with NAs - changes to 0?
+    lambda <- binary_search(vnorm, c2, maxit = 100)
+    mtXu <- t(X) %*% u
+    
+    v <- soft_thresh(mtXu, lambda) / soft_l2norm(mtXu, lambda)
+    vnorm <- sum(abs(v))
+  }
+  
+  sigma <- t(u) %*% X %*% v
+  
+  return(list("u" = u, "v" = v, "sigma" = sigma))
+}
+
+#sparse pca higher rank
+spca <- function(X, k, c2, imax){
+  
+  X_1 <- X
+  
+  for (i in 1:k){
+    
+    result <- spcar1(X_1, c2, imax)
+    u <- result$u
+    v <- result$v
+    sigma <- result$sigma
+    
+    X_1 <- X_1 - sigma * u %*% t(v)
+  }
+  
+  return (list("u" = u, "v" = v, "sigma" = sigma))
+}
+
+##### MAIN #####
+pca(X)
+
+spca(X, 0.01, 5)
+
+
