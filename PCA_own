@@ -1,8 +1,38 @@
 #own implementation
 
 #data preperation: please refer to pca_packages.R
+#packages
+#install.packages("dplyr")
+library("dplyr")
+#install.packages("PMA")
+library("PMA")
+#install.packages("tidyr")
+library(tidyr)
+#install.packages("DataCombine")
+library("DataCombine")
+#install.packages("sparsepca")
+library("sparsepca")
+
+
+#Read data
+mfifa <- subset(fifa, Position != 'Gk')
+#The variables should be centered to have mean zero.
+#Furthermore, the results obtained when we perform PCA will also
+#depend on whether the variables have been individually scaled.
+mfifa$Position <- as.numeric(as.factor(mfifa$Position)) - 1
+mfifanum<- select_if(mfifa, is.numeric)
+#mfifanum <- scale(mfifanum, scale = TRUE)
+mfifanum$mid <- rep(0, nrow(mfifanum)) #mid
+mfifanum$mid[which(mfifa$Position == 1)] <- mfifanum$mid[which(mfifa$Position == 1)]+ 1
+
+mfifanum$def <- rep(0, nrow(mfifanum))
+mfifanum$def[which(mfifa$Position == 2)] <- mfifanum$def[which(mfifa$Position == 2)]+ 1
+
+mfifanum <- mfifanum[,-1]
+
 X <- as.matrix(mfifanum)
 
+##################functions#####################
 #pca
 
 pca <- function(X){
@@ -15,6 +45,7 @@ pca <- function(X){
 
 
 #sparse pca
+#rank 1
 spcar1 <- function(X, c2, imax){
   
   #initialization
@@ -35,7 +66,7 @@ spcar1 <- function(X, c2, imax){
     lambda <- binary_search(vnorm, c2, maxit = 100)
     mtXu <- t(X) %*% u
     
-    v <- soft_thresh(mtXu, lambda) / soft_l2norm(mtXu, lambda)
+    v <- soft_thresh(mtXu, lambda) / soft_l2norm(mtXu, lambda) # why a number?
     vnorm <- sum(abs(v))
   }
   
@@ -47,6 +78,9 @@ spcar1 <- function(X, c2, imax){
 #sparse pca higher rank
 spca <- function(X, k, c2, imax){
   
+  lu <- list()
+  lv <- list()
+  
   X_1 <- X
   
   for (i in 1:k){
@@ -54,17 +88,20 @@ spca <- function(X, k, c2, imax){
     result <- spcar1(X_1, c2, imax)
     u <- result$u
     v <- result$v
+    lu[i] <- list(u)
+    lv[i] <- list(v)
     sigma <- result$sigma
     
-    X_1 <- X_1 - sigma * u %*% t(v)
+    X_1 <- X_1 - sigma * ( u %*% t(v) )
   }
   
   return (list("u" = u, "v" = v, "sigma" = sigma))
 }
 
+
 ##### MAIN #####
-pca(X)
-
-spca(X, 0.01, 5)
-
+result <- pca(X)
+spcar1(X, 0.01, 5)
+spca(X, 3, 0.01, 5)
+X%*%(as.matrix(result$pc[,1]))
 
