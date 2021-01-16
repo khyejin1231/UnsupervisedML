@@ -12,7 +12,10 @@ library(tidyr)
 library("DataCombine")
 #install.packages("sparsepca")
 library("sparsepca")
-
+#install.packages("PMA")
+library("PMA")
+#please load the data and set it to fifa
+#also run 'utilities.R' file before hand.
 
 #Read data
 mfifa <- subset(fifa, Position != 'Gk')
@@ -31,7 +34,8 @@ mfifanum$def[which(mfifa$Position == 2)] <- mfifanum$def[which(mfifa$Position ==
 mfifanum <- mfifanum[,-1]
 
 X <- as.matrix(mfifanum)
-
+X <- X[,-32]
+colnames(X)
 ##################functions#####################
 #pca
 
@@ -60,13 +64,14 @@ spcar1 <- function(X, c2, imax){
   while(i < imax){
     i <- i + 1
     Xv <- X %*% v
-    Xv <- na.omit(Xv) #???
-    X <- na.omit(Xv) #???
+    
     u <- Xv / as.numeric(sqrt((t(Xv) %*% Xv))) #How to deal with NAs - changes to 0?
     lambda <- binary_search(vnorm, c2, maxit = 100)
-    mtXu <- t(X) %*% u
+    vtXu <- t(X) %*% u
     
-    v <- soft_thresh(mtXu, lambda) / soft_l2norm(mtXu, lambda) # why a number?
+    st <- soft_thresh(vtXu, lambda)
+    
+    v <- st / sqrt(sum(st^2)) # why a number?
     vnorm <- sum(abs(v))
   }
   
@@ -80,6 +85,7 @@ spca <- function(X, k, c2, imax){
   
   lu <- list()
   lv <- list()
+  lsigma <- list()
   
   X_1 <- X
   
@@ -88,20 +94,27 @@ spca <- function(X, k, c2, imax){
     result <- spcar1(X_1, c2, imax)
     u <- result$u
     v <- result$v
+    sigma <- result$sigma
     lu[i] <- list(u)
     lv[i] <- list(v)
-    sigma <- result$sigma
+    lsigma[i] <- list(sigma)
     
-    X_1 <- X_1 - sigma * ( u %*% t(v) )
+    print(v)
+    X_1 <- X_1 - as.numeric(sigma) * ( u %*% t(v) )
   }
   
-  return (list("u" = u, "v" = v, "sigma" = sigma))
+  
+  return (list("u" = lu, "v" = lv, "sigma" = lsigma))
 }
 
 
 ##### MAIN #####
-result <- pca(X)
-spcar1(X, 0.01, 5)
-spca(X, 3, 0.01, 5)
-X%*%(as.matrix(result$pc[,1]))
+#library("PMA") SPC.cv
 
+
+#SPC.cv = 5.744563
+c1 <- SPC.cv(X, sumabsvs = sqrt(ncol(X)), nfolds = 10,
+       niter = 5, )
+icl <- c1$bestsumabsv
+
+spca_result <- spca(X, 3, icl, 5)
