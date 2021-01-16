@@ -1,8 +1,52 @@
-#own implementation
+```{r}
+#help functions from Pieter Schoonees
+binary_search <- function(x, c, maxit = 100) {
+  
+  ## Check if x already meets the condition, or whether c is zero, and return 0 in either case
+  x_l1 <- sum(abs(x))
+  if (x_l1 <= c || c == 0) {
+    return(0)
+  }
+  
+  ## Initialize search boundaries and iteration counter
+  lo <- 0
+  hi <- max(abs(x))
+  i <- 0
+  
+  ## Iterate
+  while(i < maxit) {
+    
+    ## Increase iteration count
+    i <- i + 1
+    
+    ## Get mean of current bounds, and evaluate L1 norm there
+    m <- lo + (hi - lo)/2
+    m_l1 <- sum(abs(soft_l2norm(x, m)))
+    
+    ## Update either lower or upper threshold
+    if (m_l1 <= c) { ## Note: must be <= otherwise lambda will be too large (as in PMA)
+      hi <- m
+    } else {
+      lo <- m
+    }
+    
+    ## Break if lo and hi have converged
+    if (abs(lo - hi) <= sqrt(.Machine$double.eps)) {
+      break
+    }
+  }
+  
+  return(lo + (hi - lo)/2)
+}
 
-#data preperation: please refer to pca_packages.R
-#packages
-#install.packages("dplyr")
+#' Soft-thresholding Function
+soft_thresh <- function(x, lambda) {
+  sign(x) * (pmax(abs(x) - lambda, 0))
+}
+```
+
+
+```{r cars}
 library("dplyr")
 #install.packages("PMA")
 library("PMA")
@@ -18,6 +62,7 @@ library("PMA")
 #also run 'utilities.R' file before hand.
 
 #Read data
+load("/cloud/project/FIFA2017_NL.RData")
 mfifa <- subset(fifa, Position != 'Gk')
 #The variables should be centered to have mean zero.
 #Furthermore, the results obtained when we perform PCA will also
@@ -99,7 +144,7 @@ spca <- function(X, k, c2, imax){
     lv[i] <- list(v)
     lsigma[i] <- list(sigma)
     
-    print(v)
+    
     X_1 <- X_1 - as.numeric(sigma) * ( u %*% t(v) )
   }
   
@@ -108,13 +153,15 @@ spca <- function(X, k, c2, imax){
 }
 
 
-##### MAIN #####
-#library("PMA") SPC.cv
+```
 
 
-#SPC.cv = 5.744563
+
+```{r results}
 c1 <- SPC.cv(X, sumabsvs = sqrt(ncol(X)), nfolds = 10,
        niter = 5, )
 icl <- c1$bestsumabsv
-
 spca_result <- spca(X, 3, icl, 5)
+spca_result$v
+spca_result$u
+```
