@@ -59,7 +59,6 @@ spcar1 <- function(X, c2, imax){
   p <- ncol(X)
   pca <- pca(X)
   v <- as.matrix(pca$pc[,1]) 
-  vnorm <- sum(abs(v))
   i <- 0
   
   while(i < imax){
@@ -67,7 +66,7 @@ spcar1 <- function(X, c2, imax){
     Xv <- X %*% v
     
     u <- Xv / as.numeric(sqrt((t(Xv) %*% Xv))) #How to deal with NAs - changes to 0?
-    lambda <- binary_search(vnorm, c2, maxit = 100)
+    lambda <- binary_search(Xv, c2, maxit = 200)
     vtXu <- t(X) %*% u
     
     st <- soft_thresh(vtXu, lambda)
@@ -82,7 +81,7 @@ spcar1 <- function(X, c2, imax){
 }
 
 #sparse pca higher rank
-spca <- function(X, k, c2, imax){
+spca_own <- function(X, k, c2, imax){
   
   lu <- list()
   lv <- list()
@@ -100,7 +99,7 @@ spca <- function(X, k, c2, imax){
     lv[i] <- list(v)
     lsigma[i] <- list(sigma)
     
-    print(v)
+    
     X_1 <- X_1 - as.numeric(sigma) * ( u %*% t(v) )
   }
   
@@ -108,7 +107,18 @@ spca <- function(X, k, c2, imax){
   return (list("u" = lu, "v" = lv, "sigma" = lsigma))
 }
 
-
+create_LoadingTable <- function(result_PCA, K){ #From Floris Holsteg
+  
+  lVariables <-colnames(mX_attributes)
+  
+  dfLoadings <- data.frame(lVariables,result_PCA$components[,1:K])
+  
+  colnames(dfLoadings) <- c("Variable", paste0("PC ", seq(1,K,1)))
+  
+  xtable(dfLoadings, type="latex")
+  
+  
+}
 ##### MAIN #####
 #library("PMA") SPC.cv
 
@@ -118,4 +128,8 @@ c1 <- SPC.cv(X, sumabsvs = sqrt(ncol(X)), nfolds = 10,
        niter = 5, )
 icl <- c1$bestsumabsv
 
-spca_result <- spca(X, 3, icl, 5)
+spca_result <- spca_own(X, 5, icl, 5)
+
+create_LoadingTable(spca_result, 5)
+
+spca_result$v
