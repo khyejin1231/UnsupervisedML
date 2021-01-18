@@ -12,7 +12,7 @@ library("sparsepca")
 
 
 #Read data
-summary(fifa)
+load("/cloud/project/FIFA2017_NL.RData")
 mfifa <- subset(fifa, Position != 'Gk')
 #The variables should be centered to have mean zero.
 #Furthermore, the results obtained when we perform PCA will also
@@ -27,20 +27,25 @@ mfifanum$def <- rep(0, nrow(mfifanum))
 mfifanum$def[which(mfifa$Position == 2)] <- mfifanum$def[which(mfifa$Position == 2)]+ 1
 
 mfifanum <- mfifanum[,-1]
+
+X <- as.matrix(mfifanum)
+X <- X[,-32]
+X <- scale(X)
 #Covariance matrix
 
 #PCA
-mfifanumdrop <- na.omit(mfifanum)
-mfifapca <- prcomp(mfifanumdrop)
+
+mfifapca <- prcomp(X)
 mfifapca
 summary(mfifapca)
 plot(mfifapca, type = 'l')
 biplot(mfifapca)
 
 #Sparse PCA
-mfifaspca <- spca(mfifanumdrop, center = FALSE, scale = FALSE)
+mfifaspca <- spca(X, center = FALSE, scale = FALSE)
+
 summary(mfifaspca)
-plot(mfifaspca, type = 'l')
+mfifaspca$loadings[,2] 
 #https://online.stat.psu.edu/stat505/lesson/11/11.4
 
 
