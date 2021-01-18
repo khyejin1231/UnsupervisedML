@@ -16,7 +16,7 @@ library("sparsepca")
 library("PMA")
 #please load the data and set it to fifa
 #also run 'utilities.R' file before hand.
-
+load("/cloud/project/FIFA2017_NL.RData")
 #Read data
 mfifa <- subset(fifa, Position != 'Gk')
 #The variables should be centered to have mean zero.
